@@ -2,13 +2,18 @@ package com.codigo.msregistro.infraestructure.adapters;
 
 import com.codigo.msregistro.domain.aggregates.constants.Constants;
 import com.codigo.msregistro.domain.aggregates.dto.PersonaDTO;
+import com.codigo.msregistro.domain.aggregates.dto.ReniecDTO;
 import com.codigo.msregistro.domain.aggregates.request.PersonaRequest;
 import com.codigo.msregistro.domain.ports.out.PersonaServiceOut;
+import com.codigo.msregistro.infraestructure.client.ClientReniec;
 import com.codigo.msregistro.infraestructure.dao.PersonaRepository;
 import com.codigo.msregistro.infraestructure.entity.PersonaEntity;
 import com.codigo.msregistro.infraestructure.entity.TipoDocumentoEntity;
 import com.codigo.msregistro.infraestructure.mapper.PersonaMapper;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -16,10 +21,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PersonaAdapter implements PersonaServiceOut {
 
     private final PersonaRepository personaRepository;
+    private final ClientReniec clientReniec;
+
+    @Value("${token.reniec}")
+    private String tokenReniec;
 
     @Override
     public PersonaDTO crearPersonaOut(PersonaRequest personaRequest) {
@@ -28,13 +37,16 @@ public class PersonaAdapter implements PersonaServiceOut {
     }
 
     private PersonaEntity getPersonaCreate(PersonaRequest personaRequest) {
+        //LLamando a mi metodo de apoyo que ejecuta la peticion en el cliente externo
+        ReniecDTO reniecDTO = getExecutionReniec(personaRequest.getDni());
+
         PersonaEntity entity = new PersonaEntity();
         TipoDocumentoEntity tipoDocumento = new TipoDocumentoEntity();
         tipoDocumento.setIdTipoDocumento(Long.valueOf(personaRequest.getTipoDoc()));
-        entity.setNumDocu(personaRequest.getNumDocu());
-        entity.setNombres(personaRequest.getNombres());
-        entity.setApeMat(personaRequest.getApeMat());
-        entity.setApePat(personaRequest.getApePat());
+        entity.setNumDocu(reniecDTO.getNumeroDocumento());
+        entity.setNombres(reniecDTO.getNombres());
+        entity.setApeMat(reniecDTO.getApellidoMaterno());
+        entity.setApePat(reniecDTO.getApellidoPaterno());
         entity.setEstado(Constants.STATUS_ACTIVE);
         entity.setUsuaCrea(Constants.USU_ADMIN);
         entity.setDateCreate(getTimestamp());
@@ -47,6 +59,11 @@ public class PersonaAdapter implements PersonaServiceOut {
         return new Timestamp(currenTIme);
     }
 
+    private ReniecDTO getExecutionReniec(String numero){
+        String authorization = "Bearer "+tokenReniec;
+        ReniecDTO datosReniec = clientReniec.getInfoReniec(numero,authorization);
+        return datosReniec;
+    }
     @Override
     public Optional<PersonaDTO> obtenerPersonaOut(Long id) {
         return Optional.empty();

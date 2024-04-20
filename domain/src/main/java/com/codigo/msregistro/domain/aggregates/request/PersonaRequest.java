@@ -6,9 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PersonaRequest {
-    private String numDocu;
-    private String nombres;
-    private String apePat;
-    private String apeMat;
     private Integer tipoDoc;
+    private String dni;
 }
