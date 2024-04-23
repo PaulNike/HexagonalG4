@@ -10,6 +10,8 @@ import com.codigo.msregistro.infraestructure.dao.PersonaRepository;
 import com.codigo.msregistro.infraestructure.entity.PersonaEntity;
 import com.codigo.msregistro.infraestructure.entity.TipoDocumentoEntity;
 import com.codigo.msregistro.infraestructure.mapper.PersonaMapper;
+import com.codigo.msregistro.infraestructure.redis.RedisService;
+import com.codigo.msregistro.infraestructure.util.Util;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +28,7 @@ public class PersonaAdapter implements PersonaServiceOut {
 
     private final PersonaRepository personaRepository;
     private final ClientReniec clientReniec;
+    private final RedisService redisService;
 
     @Value("${token.reniec}")
     private String tokenReniec;
@@ -66,7 +69,16 @@ public class PersonaAdapter implements PersonaServiceOut {
     }
     @Override
     public Optional<PersonaDTO> obtenerPersonaOut(Long id) {
-        return Optional.empty();
+        String redisInfo = redisService.getFromRedis(Constants.REDIS_KEY_OBTENERPERSONA+id);
+        if(redisInfo != null){
+            PersonaDTO personaDTO = Util.convertirDesdeString(redisInfo, PersonaDTO.class);
+            return Optional.of(personaDTO);
+        }else{
+            PersonaDTO personaDTO = PersonaMapper.fromEntity(personaRepository.findById(id).get());
+            String dataParaRedis = Util.convertirAString(personaDTO);
+            redisService.saveInRedis(Constants.REDIS_KEY_OBTENERPERSONA+id,dataParaRedis,2);
+            return Optional.of(personaDTO);
+        }
     }
 
     @Override

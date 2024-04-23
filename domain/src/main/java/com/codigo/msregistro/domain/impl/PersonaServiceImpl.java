@@ -22,7 +22,7 @@ public class PersonaServiceImpl implements PersonaServiceIn {
 
     @Override
     public Optional<PersonaDTO> obtenerPersonaIn(Long id) {
-        return Optional.empty();
+        return personaServiceOut.obtenerPersonaOut(id);
     }
 
     @Override
